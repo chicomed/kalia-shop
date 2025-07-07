@@ -54,11 +54,11 @@ const AdminSidebar: React.FC = () => {
       label: 'Clients',
       path: '/admin/clients'
     },
-    {
+   /* {
       icon: MessageSquare,
       label: 'Messages',
       path: '/admin/messages'
-    },
+    },*/
     {
       icon: BarChart3,
       label: 'Rapports',
