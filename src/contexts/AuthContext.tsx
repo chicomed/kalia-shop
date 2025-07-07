@@ -6,23 +6,14 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
-
-interface UserProfile {
-  uid: string;
-  email: string;
-  name?: string;
-  photoURL?: string;
-  createdAt: Date;
-}
+import { auth } from '../firebase/config';
 
 interface AuthContextType {
   user: User | null;
-  userProfile: UserProfile | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,35 +26,23 @@ export const useAuth = () => {
   return context;
 };
 
+// Single admin email
+const ADMIN_EMAIL = 'chaloueimin@gmail.com';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user) {
-        await loadUserProfile(user.uid);
-      } else {
-        setUserProfile(null);
-      }
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
-
-  const loadUserProfile = async (uid: string) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'userProfiles', uid));
-      if (userDoc.exists()) {
-        setUserProfile(userDoc.data() as UserProfile);
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-  };
 
   const signInWithGoogle = async (): Promise<void> => {
     try {
@@ -72,22 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         prompt: 'select_account'
       });
       
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Check if user profile exists, if not create one
-      const userDoc = await getDoc(doc(db, 'userProfiles', user.uid));
-      if (!userDoc.exists()) {
-        const newUserProfile: UserProfile = {
-          uid: user.uid,
-          email: user.email || '',
-          name: user.displayName || '',
-          photoURL: user.photoURL || '',
-          createdAt: new Date()
-        };
-        await setDoc(doc(db, 'userProfiles', user.uid), newUserProfile);
-        setUserProfile(newUserProfile);
-      }
+      await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;
@@ -98,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await firebaseSignOut(auth);
       setUser(null);
-      setUserProfile(null);
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
@@ -107,10 +70,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
-    userProfile,
     loading,
     signInWithGoogle,
-    signOut
+    signOut,
+    isAdmin
   };
 
   return (

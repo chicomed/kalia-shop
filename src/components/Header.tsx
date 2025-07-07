@@ -5,19 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { useUserManagement } from '../contexts/UserManagementContext';
 import LanguageSelector from './LanguageSelector';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const isAdmin = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith('/admin');
   
-  const { user, userProfile, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const { t, isRTL } = useLanguage();
   const { getTotalItems } = useCart();
   const { getBusinessSettings } = useSettings();
-  const { isSuperAdmin, users } = useUserManagement();
 
   const businessSettings = getBusinessSettings();
 
@@ -30,9 +28,6 @@ const Header: React.FC = () => {
       }
     }
   };
-
-  // Check if user is authorized admin
-  const isUserAdmin = isSuperAdmin || users.some(u => u.email === user?.email && u.status === 'active');
 
   const shopLogo = businessSettings?.logo || '';
   const shopName = businessSettings?.storeName || t('home.title');
@@ -60,7 +55,7 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {!isAdmin ? (
+            {!isAdminRoute ? (
               <>
                 <Link to="/" className="hover:text-gold-500 transition-colors font-modern">
                   {t('nav.home')}
@@ -97,7 +92,7 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             <LanguageSelector />
             
-            {!isAdmin && (
+            {!isAdminRoute && (
               <Link to="/cart" className="relative group">
                 <ShoppingBag className="h-6 w-6 hover:text-gold-500 transition-colors" />
                 {getTotalItems() > 0 && (
@@ -108,40 +103,40 @@ const Header: React.FC = () => {
               </Link>
             )}
 
-            {/* Admin User Info - Only show if user is logged in and is admin */}
-            {user && isUserAdmin && (
+            {/* Admin Access */}
+            {isAdmin && (
               <div className="flex items-center space-x-3">
-                {!isAdmin && (
+                {!isAdminRoute && (
                   <Link 
                     to="/admin" 
                     className="hidden md:flex items-center space-x-1 hover:text-gold-500 transition-colors"
                   >
                     <Settings className="h-5 w-5" />
-                    <span className="font-modern text-sm">{t('nav.admin')}</span>
+                    <span className="font-modern text-sm">Admin</span>
                   </Link>
                 )}
                 
-                {isAdmin && (
+                {isAdminRoute && (
                   <Link 
                     to="/" 
                     className="hidden md:flex items-center space-x-1 hover:text-gold-500 transition-colors"
                   >
                     <Crown className="h-5 w-5" />
-                    <span className="font-modern text-sm">{t('nav.boutique')}</span>
+                    <span className="font-modern text-sm">Boutique</span>
                   </Link>
                 )}
 
                 <div className="flex items-center space-x-2">
-                  {userProfile?.photoURL ? (
+                  {user?.photoURL ? (
                     <img 
-                      src={userProfile.photoURL} 
-                      alt={userProfile.name || 'Admin'} 
+                      src={user.photoURL} 
+                      alt={user.displayName || 'Admin'} 
                       className="h-8 w-8 rounded-full"
                     />
                   ) : (
                     <User className="h-5 w-5 text-gold-500" />
                   )}
-                  <span className="text-sm">{userProfile?.name || user.email}</span>
+                  <span className="text-sm">{user?.displayName || user?.email}</span>
                 </div>
                 
                 <button
@@ -149,7 +144,7 @@ const Header: React.FC = () => {
                   className="flex items-center space-x-1 hover:text-gold-500 transition-colors"
                 >
                   <LogOut className="h-5 w-5" />
-                  <span className="font-modern text-sm">{t('nav.logout')}</span>
+                  <span className="font-modern text-sm">Déconnexion</span>
                 </button>
               </div>
             )}
@@ -168,7 +163,7 @@ const Header: React.FC = () => {
         {isMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-elegant-black border-t border-gold-500/20 shadow-lg">
             <nav className="flex flex-col space-y-4 p-4">
-              {!isAdmin ? (
+              {!isAdminRoute ? (
                 <>
                   <Link to="/" className="hover:text-gold-500 transition-colors font-modern">
                     {t('nav.home')}
@@ -182,16 +177,16 @@ const Header: React.FC = () => {
                   <Link to="/contact" className="hover:text-gold-500 transition-colors font-modern">
                     {t('nav.contact')}
                   </Link>
-                  {user && isUserAdmin && (
+                  {isAdmin && (
                     <>
                       <Link to="/admin" className="hover:text-gold-500 transition-colors font-modern border-t border-gold-500/20 pt-4">
-                        {t('nav.admin')}
+                        Admin
                       </Link>
                       <button
                         onClick={handleSignOut}
                         className="text-left hover:text-gold-500 transition-colors font-modern"
                       >
-                        {t('nav.logout')}
+                        Déconnexion
                       </button>
                     </>
                   )}
@@ -211,16 +206,14 @@ const Header: React.FC = () => {
                     {t('nav.cashRegister')}
                   </Link>
                   <Link to="/" className="hover:text-gold-500 transition-colors font-modern border-t border-gold-500/20 pt-4">
-                    {t('nav.boutique')}
+                    Boutique
                   </Link>
-                  {user && (
-                    <button
-                      onClick={handleSignOut}
-                      className="text-left hover:text-gold-500 transition-colors font-modern"
-                    >
-                      {t('nav.logout')}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleSignOut}
+                    className="text-left hover:text-gold-500 transition-colors font-modern"
+                  >
+                    Déconnexion
+                  </button>
                 </>
               )}
             </nav>

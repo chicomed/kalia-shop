@@ -74,17 +74,11 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setSettings(null);
-      setLoading(false);
-      return;
-    }
-
     const settingsDocId = 'default';
 
     // Set up real-time listener for settings
@@ -118,10 +112,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return {
       id: settingsId,
       profile: {
-        name: userProfile?.name || '',
-        email: userProfile?.email || user?.email || '',
+        name: user?.displayName || '',
+        email: user?.email || '',
         phone: '',
-        avatar: userProfile?.photoURL || ''
+        avatar: user?.photoURL || ''
       },
       notifications: {
         emailOrders: true,
@@ -198,7 +192,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const updateSettings = async (section: keyof Omit<ShopSettings, 'id' | 'createdAt' | 'updatedAt'>, data: any) => {
-    if (!user || !settings) return;
+    if (!settings) return;
 
     try {
       const updatedSettings = {

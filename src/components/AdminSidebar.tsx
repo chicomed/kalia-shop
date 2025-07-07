@@ -10,19 +10,16 @@ import {
   Settings,
   Crown,
   BarChart3,
-  LogOut,
-  Shield
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useUserManagement } from '../contexts/UserManagementContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 const AdminSidebar: React.FC = () => {
   const location = useLocation();
-  const { signOut, userProfile } = useAuth();
+  const { signOut, user } = useAuth();
   const { t, isRTL } = useLanguage();
-  const { isSuperAdmin, canManageUsers, hasPermission } = useUserManagement();
   const { getBusinessSettings } = useSettings();
 
   const businessSettings = getBusinessSettings();
@@ -54,14 +51,9 @@ const AdminSidebar: React.FC = () => {
     },
     {
       icon: Users,
-      label: hasPermission('manageClients') ? 'Clients' : null,
+      label: 'Clients',
       path: '/admin/clients'
     },
-    ...(canManageUsers ? [{
-      icon: Shield,
-      label: 'Utilisateurs',
-      path: '/admin/users'
-    }] : []),
     {
       icon: MessageSquare,
       label: 'Messages',
@@ -69,15 +61,15 @@ const AdminSidebar: React.FC = () => {
     },
     {
       icon: BarChart3,
-      label: hasPermission('viewReports') ? 'Rapports' : null,
+      label: 'Rapports',
       path: '/admin/reports'
     },
     {
       icon: Settings,
-      label: hasPermission('manageSettings') ? 'Paramètres' : null,
+      label: 'Paramètres',
       path: '/admin/settings'
     }
-  ].filter(item => item.label !== null);
+  ];
 
   const isActive = (path: string, exact = false) => {
     if (exact) {
@@ -119,15 +111,21 @@ const AdminSidebar: React.FC = () => {
       <div className="p-6 border-b border-gray-700">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gold-500 rounded-full flex items-center justify-center">
-            <span className="text-elegant-black font-bold">
-              {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'A'}
-            </span>
+            {user?.photoURL ? (
+              <img 
+                src={user.photoURL} 
+                alt="Admin" 
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-elegant-black font-bold">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'A'}
+              </span>
+            )}
           </div>
           <div>
-            <p className="font-medium">{userProfile?.name || 'Admin'}</p>
-            <p className="text-xs text-gray-400">
-              {isSuperAdmin ? 'Super Admin' : 'Administrator'}
-            </p>
+            <p className="font-medium">{user?.displayName || 'Admin'}</p>
+            <p className="text-xs text-gray-400">Administrateur</p>
           </div>
         </div>
       </div>
@@ -137,7 +135,6 @@ const AdminSidebar: React.FC = () => {
         <ul className="space-y-2 px-4">
           {menuItems.map((item) => (
             <li key={item.path}>
-              {item.label && (
               <Link
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
@@ -149,7 +146,6 @@ const AdminSidebar: React.FC = () => {
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </Link>
-              )}
             </li>
           ))}
         </ul>
@@ -162,14 +158,14 @@ const AdminSidebar: React.FC = () => {
           className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-200"
         >
           <Crown className="h-5 w-5" />
-          <span>{t('nav.boutique')}</span>
+          <span>Boutique</span>
         </Link>
         <button
           onClick={handleSignOut}
           className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200"
         >
           <LogOut className="h-5 w-5" />
-          <span>{t('nav.logout')}</span>
+          <span>Déconnexion</span>
         </button>
       </div>
     </div>
