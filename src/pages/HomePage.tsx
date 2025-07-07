@@ -13,8 +13,7 @@ const HomePage: React.FC = () => {
     categories, 
     getFeaturedProducts, 
     getPromotedProducts, 
-    getNewProducts,
-    getProductsByCategory 
+    getNewProducts
   } = useProducts();
   const { addToCart } = useCart();
   const { getBusinessSettings } = useSettings();
