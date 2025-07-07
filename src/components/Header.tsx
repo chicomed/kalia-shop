@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useUserManagement } from '../contexts/UserManagementContext';
 import LanguageSelector from './LanguageSelector';
 
 const Header: React.FC = () => {
@@ -16,6 +17,7 @@ const Header: React.FC = () => {
   const { t, isRTL } = useLanguage();
   const { getTotalItems } = useCart();
   const { getBusinessSettings } = useSettings();
+  const { isSuperAdmin, users } = useUserManagement();
 
   const businessSettings = getBusinessSettings();
 
@@ -29,7 +31,8 @@ const Header: React.FC = () => {
     }
   };
 
-  const isUserAdmin = userProfile?.role === 'admin';
+  // Check if user is authorized admin
+  const isUserAdmin = isSuperAdmin || users.some(u => u.email === user?.email && u.status === 'active');
 
   const shopLogo = businessSettings?.logo || '';
   const shopName = businessSettings?.storeName || t('home.title');

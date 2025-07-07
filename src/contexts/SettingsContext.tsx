@@ -12,7 +12,6 @@ import { useAuth } from './AuthContext';
 
 export interface ShopSettings {
   id: string;
-  shopId?: string;
   profile: {
     name: string;
     email: string;
@@ -79,11 +78,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Get current shop ID from localStorage or user profile
-  const getCurrentShopId = () => {
-    return localStorage.getItem('currentShopId') || 'default';
-  };
-
   useEffect(() => {
     if (!user) {
       setSettings(null);
@@ -91,8 +85,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
-    const shopId = getCurrentShopId();
-    const settingsDocId = `${user.uid}_${shopId}`;
+    const settingsDocId = 'default';
 
     // Set up real-time listener for settings
     const unsubscribe = onSnapshot(
@@ -106,7 +99,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           updateLocalStorage(settingsData);
         } else {
           // Create default settings if none exist
-          const defaultSettings = createDefaultSettings(settingsDocId, shopId);
+          const defaultSettings = createDefaultSettings(settingsDocId);
           await setDoc(doc(db, 'settings', settingsDocId), defaultSettings);
           setSettings(defaultSettings);
         }
@@ -121,10 +114,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return unsubscribe;
   }, [user]);
 
-  const createDefaultSettings = (settingsId: string, shopId: string): ShopSettings => {
+  const createDefaultSettings = (settingsId: string): ShopSettings => {
     return {
       id: settingsId,
-      shopId,
       profile: {
         name: userProfile?.name || '',
         email: userProfile?.email || user?.email || '',

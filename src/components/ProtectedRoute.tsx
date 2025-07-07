@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserManagement } from '../contexts/UserManagementContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,7 +9,8 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
-  const { user, userProfile, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { isSuperAdmin, users } = useUserManagement();
 
   if (loading) {
     return (
@@ -25,10 +27,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     return <Navigate to="/admin/login" replace />;
   }
 
-  if (requireAdmin && userProfile?.role !== 'admin') {
-    // Check if user has any shop access
-    const hasShopAccess = localStorage.getItem('currentShopId');
-    if (!hasShopAccess) {
+  if (requireAdmin) {
+    // Check if user is super admin or in the users list
+    const isAuthorized = isSuperAdmin || users.some(u => u.email === user.email && u.status === 'active');
+    
+    if (!isAuthorized) {
       return <Navigate to="/admin/login" replace />;
     }
   }

@@ -10,7 +10,6 @@ import {
   Settings,
   Crown,
   BarChart3,
-  FileText,
   LogOut,
   Shield
 } from 'lucide-react';
@@ -126,7 +125,9 @@ const AdminSidebar: React.FC = () => {
           </div>
           <div>
             <p className="font-medium">{userProfile?.name || 'Admin'}</p>
-            <p className="text-xs text-gray-400">{userProfile?.role || 'Administrator'}</p>
+            <p className="text-xs text-gray-400">
+              {isSuperAdmin ? 'Super Admin' : 'Administrator'}
+            </p>
           </div>
         </div>
       </div>

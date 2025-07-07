@@ -5,18 +5,16 @@ import {
   Bell, 
   Shield, 
   Palette, 
-  Globe,
   Save,
-  Upload,
   Eye,
   EyeOff,
   CreditCard
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SingleImageUpload from '../components/SingleImageUpload';
 import ImageUpload from '../components/ImageUpload';
-import { useProducts } from '../contexts/ProductContext';
 import toast from 'react-hot-toast';
 
 // Payment methods management component
@@ -148,7 +146,7 @@ const PaymentMethodsSettings: React.FC<PaymentMethodsSettingsProps> = ({ payment
 
 const AdminSettings: React.FC = () => {
   const { userProfile } = useAuth();
-  const { categories } = useProducts();
+  const { settings, updateSettings, updatePaymentMethods } = useSettings();
   const [activeTab, setActiveTab] = useState('profile');
   const [showPassword, setShowPassword] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -165,40 +163,6 @@ const AdminSettings: React.FC = () => {
     onConfirm: () => {},
     type: 'warning',
     loading: false
-  });
-  const [settings, setSettings] = useState({
-    profile: {
-      name: userProfile?.name || '',
-      email: userProfile?.email || '',
-      phone: userProfile?.phoneNumber || '',
-      avatar: ''
-    },
-    notifications: {
-      emailOrders: true,
-      emailMessages: true,
-      smsOrders: false,
-      pushNotifications: true
-    },
-    security: {
-      twoFactor: false,
-      sessionTimeout: 30,
-      passwordExpiry: 90
-    },
-    appearance: {
-      theme: 'light',
-      language: 'fr',
-      currency: 'EUR'
-    },
-    business: {
-      storeName: 'Voile Beauté',
-      storeDescription: 'Boutique de voiles traditionnels mauritaniens',
-      logo: '',
-      heroImages: [''],
-      address: 'Tevragh Zeina, Nouakchott',
-      phone: '+222 12 34 56 78',
-      email: 'contact@voilebeaute.mr',
-      taxNumber: 'MR123456789'
-    }
   });
 
   const tabs = [
@@ -220,20 +184,6 @@ const AdminSettings: React.FC = () => {
         setConfirmDialog(prev => ({ ...prev, loading: true }));
         
         setTimeout(() => {
-          console.log(`Saving ${section} settings:`, settings[section as keyof typeof settings]);
-          
-          // Save business settings to localStorage (in a real app, this would be saved to a database)
-          if (section === 'business') {
-            const businessSettings = settings.business;
-            localStorage.setItem('shopLogo', businessSettings.logo);
-            localStorage.setItem('shopHeroImages', JSON.stringify(businessSettings.heroImages.filter(img => img.trim() !== '')));
-            localStorage.setItem('shopName', businessSettings.storeName);
-            localStorage.setItem('shopDescription', businessSettings.storeDescription);
-            localStorage.setItem('shopAddress', businessSettings.address);
-            localStorage.setItem('shopPhone', businessSettings.phone);
-            localStorage.setItem('shopEmail', businessSettings.email);
-          }
-          
           toast.success('Paramètres sauvegardés avec succès');
           setConfirmDialog(prev => ({ ...prev, isOpen: false, loading: false }));
         }, 1000);
@@ -242,41 +192,27 @@ const AdminSettings: React.FC = () => {
   };
 
   const handleInputChange = (section: string, field: string, value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [field]: value
-      }
-    }));
+    if (!settings) return;
+    
+    const updatedSection = {
+      ...settings[section as keyof typeof settings],
+      [field]: value
+    };
+    
+    updateSettings(section as any, updatedSection);
   };
 
-  // Load saved business settings on component mount
-  React.useEffect(() => {
-    const savedLogo = localStorage.getItem('shopLogo');
-    const savedHeroImages = localStorage.getItem('shopHeroImages');
-    const savedName = localStorage.getItem('shopName');
-    const savedDescription = localStorage.getItem('shopDescription');
-    const savedAddress = localStorage.getItem('shopAddress');
-    const savedPhone = localStorage.getItem('shopPhone');
-    const savedEmail = localStorage.getItem('shopEmail');
-    
-    if (savedLogo || savedHeroImages || savedName || savedDescription || savedAddress || savedPhone || savedEmail) {
-      setSettings(prev => ({
-        ...prev,
-        business: {
-          ...prev.business,
-          logo: savedLogo || prev.business.logo,
-          heroImages: savedHeroImages ? JSON.parse(savedHeroImages) : prev.business.heroImages,
-          storeName: savedName || prev.business.storeName,
-          storeDescription: savedDescription || prev.business.storeDescription,
-          address: savedAddress || prev.business.address,
-          phone: savedPhone || prev.business.phone,
-          email: savedEmail || prev.business.email
-        }
-      }));
-    }
-  }, []);
+  if (!settings) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des paramètres...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -386,214 +322,6 @@ const AdminSettings: React.FC = () => {
 
                     <button
                       onClick={() => handleSave('profile')}
-                      className="bg-elegant-black hover:bg-gold-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Save className="h-5 w-5" />
-                      <span>Enregistrer</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Notifications Settings */}
-              {activeTab === 'notifications' && (
-                <div>
-                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
-                    Préférences de Notification
-                  </h2>
-                  
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="font-medium text-elegant-black">Notifications Email</h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.notifications.emailOrders}
-                            onChange={(e) => handleInputChange('notifications', 'emailOrders', e.target.checked)}
-                            className="text-gold-500 focus:ring-gold-500"
-                          />
-                          <span className="ml-3">Nouvelles commandes</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.notifications.emailMessages}
-                            onChange={(e) => handleInputChange('notifications', 'emailMessages', e.target.checked)}
-                            className="text-gold-500 focus:ring-gold-500"
-                          />
-                          <span className="ml-3">Nouveaux messages clients</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="font-medium text-elegant-black">Notifications SMS</h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={settings.notifications.smsOrders}
-                            onChange={(e) => handleInputChange('notifications', 'smsOrders', e.target.checked)}
-                            className="text-gold-500 focus:ring-gold-500"
-                          />
-                          <span className="ml-3">Commandes urgentes</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleSave('notifications')}
-                      className="bg-elegant-black hover:bg-gold-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Save className="h-5 w-5" />
-                      <span>Enregistrer</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Security Settings */}
-              {activeTab === 'security' && (
-                <div>
-                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
-                    Paramètres de Sécurité
-                  </h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-medium text-elegant-black mb-4">Authentification à deux facteurs</h3>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={settings.security.twoFactor}
-                          onChange={(e) => handleInputChange('security', 'twoFactor', e.target.checked)}
-                          className="text-gold-500 focus:ring-gold-500"
-                        />
-                        <span className="ml-3">Activer l'authentification à deux facteurs</span>
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Délai d'expiration de session (minutes)
-                      </label>
-                      <select
-                        value={settings.security.sessionTimeout}
-                        onChange={(e) => handleInputChange('security', 'sessionTimeout', parseInt(e.target.value))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                      >
-                        <option value={15}>15 minutes</option>
-                        <option value={30}>30 minutes</option>
-                        <option value={60}>1 heure</option>
-                        <option value={120}>2 heures</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-elegant-black mb-4">Changer le mot de passe</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mot de passe actuel
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 pr-10"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nouveau mot de passe
-                          </label>
-                          <input
-                            type="password"
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Confirmer le nouveau mot de passe
-                          </label>
-                          <input
-                            type="password"
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleSave('security')}
-                      className="bg-elegant-black hover:bg-gold-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Save className="h-5 w-5" />
-                      <span>Enregistrer</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Methods Settings */}
-              {activeTab === 'payment' && (
-                <div>
-                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
-                    Méthodes de Paiement
-                  </h2>
-                  
-                  <PaymentMethodsSettings />
-                </div>
-              )}
-
-              {/* Appearance Settings */}
-              {activeTab === 'appearance' && (
-                <div>
-                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
-                    Apparence et Langue
-                  </h2>
-                  
-                  <div className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Thème
-                        </label>
-                        <select
-                          value={settings.appearance.theme}
-                          onChange={(e) => handleInputChange('appearance', 'theme', e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                        >
-                          <option value="light">Clair</option>
-                          <option value="dark">Sombre</option>
-                          <option value="auto">Automatique</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Langue
-                        </label>
-                        <select
-                          value={settings.appearance.language}
-                          onChange={(e) => handleInputChange('appearance', 'language', e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                        >
-                          <option value="fr">Français</option>
-                          <option value="ar">العربية</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleSave('appearance')}
                       className="bg-elegant-black hover:bg-gold-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       <Save className="h-5 w-5" />
@@ -751,6 +479,48 @@ const AdminSettings: React.FC = () => {
                       <span>Enregistrer</span>
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Payment Methods Settings */}
+              {activeTab === 'payment' && (
+                <div>
+                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
+                    Méthodes de Paiement
+                  </h2>
+                  
+                  <PaymentMethodsSettings 
+                    paymentMethods={settings.paymentMethods}
+                    onSave={updatePaymentMethods}
+                  />
+                </div>
+              )}
+
+              {/* Other tabs can be implemented similarly */}
+              {activeTab === 'notifications' && (
+                <div>
+                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
+                    Préférences de Notification
+                  </h2>
+                  <p className="text-gray-600">Configuration des notifications à venir...</p>
+                </div>
+              )}
+
+              {activeTab === 'security' && (
+                <div>
+                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
+                    Paramètres de Sécurité
+                  </h2>
+                  <p className="text-gray-600">Configuration de la sécurité à venir...</p>
+                </div>
+              )}
+
+              {activeTab === 'appearance' && (
+                <div>
+                  <h2 className="font-elegant text-2xl font-semibold text-elegant-black mb-6">
+                    Apparence et Langue
+                  </h2>
+                  <p className="text-gray-600">Configuration de l'apparence à venir...</p>
                 </div>
               )}
             </div>

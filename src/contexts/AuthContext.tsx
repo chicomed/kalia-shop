@@ -12,7 +12,6 @@ import { auth, db } from '../firebase/config';
 interface UserProfile {
   uid: string;
   email: string;
-  role: 'admin' | 'customer';
   name?: string;
   photoURL?: string;
   createdAt: Date;
@@ -57,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUserProfile = async (uid: string) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
+      const userDoc = await getDoc(doc(db, 'userProfiles', uid));
       if (userDoc.exists()) {
         setUserProfile(userDoc.data() as UserProfile);
       }
@@ -77,31 +76,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = result.user;
       
       // Check if user profile exists, if not create one
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userDoc = await getDoc(doc(db, 'userProfiles', user.uid));
       if (!userDoc.exists()) {
-        // Determine role based on email
-        const isSuperAdmin = user.email === 'chaloueimin@gmail.com';
-        const role = isSuperAdmin ? 'admin' : 'user';
-        
         const newUserProfile: UserProfile = {
           uid: user.uid,
           email: user.email || '',
-          role: role,
           name: user.displayName || '',
           photoURL: user.photoURL || '',
           createdAt: new Date()
         };
-        await setDoc(doc(db, 'users', user.uid), newUserProfile);
+        await setDoc(doc(db, 'userProfiles', user.uid), newUserProfile);
         setUserProfile(newUserProfile);
-      } else {
-        const profile = userDoc.data() as UserProfile;
-        
-        // Only allow admin access to admin routes
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/admin') && profile.role !== 'admin') {
-          await firebaseSignOut(auth);
-          throw new Error('Accès non autorisé aux fonctions d\'administration.');
-        }
       }
     } catch (error) {
       console.error('Error signing in with Google:', error);
